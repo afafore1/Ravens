@@ -2,6 +2,7 @@ package Algorithm;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import Graph.Graph;
 import Graph.IEdge;
@@ -42,8 +43,25 @@ public class Brain {
 		ArrayList<IVertex> answers = GetAnswers();
 		String answerGroup = FindAnswerGrouping(keys, 2);
 		ArrayList<HashMap<String, String>> answerProp = GetProposedProperties(answerGroup, answers, keys);
-		GetAnswerProperties(answerProp, keys);
-		System.out.println(answerProp);
+		answerProp = GetAnswerProperties(answerProp, keys);
+		if(!answerProp.isEmpty())
+		{
+			System.out.println("Answer is "+GetAnswer(answers, answerProp));
+			return GetAnswer(answers, answerProp);
+		}
+		System.out.println("This is proposal "+answerProp);
+		return -1;
+	}
+	
+	private int GetAnswer(ArrayList<IVertex> answers, ArrayList<HashMap<String, String>> answerProp)
+	{
+			for(IVertex ans : answers)
+			{
+				if(ans.GetAttributes().equals(answerProp))
+				{
+					return Integer.parseInt(ans.GetLabel());
+				}
+			}
 		return -1;
 	}
 	
@@ -71,10 +89,6 @@ public class Brain {
 		{
 			if(!key.IsVisited()) return key.GetLabel(); // could be multiple ?
 		}
-//		for(IEdge edge : _graph.GetEdges())
-//		{
-//			System.out.println(edge.GetSource().GetLabel() +" and "+edge.GetDestination().GetLabel());
-//		}
 		return "ALL";
 	}
 	
@@ -98,27 +112,280 @@ public class Brain {
 		return answerProp;
 	}
 	
-	//forgive me for this horrible solution :(
 	private ArrayList<HashMap<String, String>> GetAnswerProperties(ArrayList<HashMap<String, String>> answerProp, ArrayList<IVertex> keys)
 	{
 		ArrayList<HashMap<String, String>> rightProperties = new ArrayList<>();
-		for(IVertex key : keys)
+		HashSet<HashMap<String, String>> differencesInKeys = new HashSet<>();
+		HashMap<String, Integer> diffInKeys = new HashMap<>();
+		for(int k = 0; k < keys.size(); k++)
 		{
-			for(HashMap<String, String> keyAttr : key.GetAttributes())
+			IVertex key = keys.get(k);
+			for(int j = k+1 <= keys.size() ? k+1 : 1; j < keys.size(); j++)
 			{
-				for(HashMap<String, String> ansAttr : answerProp)
+				IVertex kKey = keys.get(j);
+				if(!key.GetLabel().equals(kKey.GetLabel()))
 				{
-					for(String s : keyAttr.keySet())
+					// compare their attributes
+					for(int i = 0; i < key.GetAttributes().size(); i++)
 					{
-						for(String a : ansAttr.keySet())
+						HashMap<String, String> keyAttr = key.GetAttributes().get(i);
+						if(answerProp.size() > i && kKey.GetAttributes().size() > i)
 						{
-							
+							HashMap<String, String> ansAttr = answerProp.get(i);
+							HashMap<String, String> kKeyAttr = kKey.GetAttributes().get(i);
+							HashMap<String, String> diff = Diff(keyAttr, kKeyAttr, ansAttr);
+							if(!diff.isEmpty())
+							{
+								differencesInKeys.add(diff);
+								if(diffInKeys.containsKey(key.GetLabel()))
+								{
+									diffInKeys.put(key.GetLabel(), diffInKeys.get(key.GetLabel())+1);
+								}
+								else
+								{
+									diffInKeys.put(key.GetLabel(), 1);
+								}
+								if(diffInKeys.containsValue(kKey.GetLabel()))
+								{
+									diffInKeys.put(kKey.GetLabel(), diffInKeys.get(kKey.GetLabel()+1));
+								}
+								else
+								{
+									diffInKeys.put(kKey.GetLabel(), 1);
+								}
+								System.out.println(key.GetLabel()+" is different from "+kKey.GetLabel()+" with diff "+diff);
+							}							
 						}
 					}
 				}
 			}
 		}
+		System.out.println(diffInKeys);
+		rightProperties = keys.get(0).GetAttributes();
+		if(differencesInKeys.isEmpty())
+		{
+			//rightProperties = keys.get(0).GetAttributes();
+			System.out.println("Right properties are "+rightProperties);
+		}
+		else
+		{
+			rightProperties = FixWrongProperties(diffInKeys, differencesInKeys, rightProperties, keys);
+			System.out.println("fix these "+differencesInKeys);
+		}
 		return rightProperties;
+	}
+	
+	private ArrayList<HashMap<String, String>> FixWrongProperties(HashMap<String, Integer> diffInKeys, HashSet<HashMap<String, String>> differencesInKeys,
+			ArrayList<HashMap<String, String>> rightProperties, ArrayList<IVertex> keys)
+	{
+		ArrayList<HashMap<String, String>> rightPropertiesCopy = new ArrayList<>();
+		String keyToTakeFrom = GetHighestInKey(diffInKeys);
+		if(keyToTakeFrom != null)
+		{
+			for(IVertex k : keys)
+			{
+				if(k.GetLabel().equals(keyToTakeFrom))
+				{
+					rightPropertiesCopy = FixWrongProperties(k.GetAttributes(), differencesInKeys, rightProperties);
+				}
+			}
+		}
+		else // figure this out
+		{
+			for(HashMap<String, String> diffs : differencesInKeys)
+			{
+				for(String s : diffs.keySet())
+				{
+					rightPropertiesCopy = FixWrongProperties(s, keys, rightProperties);
+				}
+			}
+		}
+		
+		return rightPropertiesCopy;
+	}
+	
+	private ArrayList<HashMap<String, String>> FixWrongProperties(String fixCase, ArrayList<IVertex> keys, ArrayList<HashMap<String, String>> rightProperties)
+	{
+		ArrayList<HashMap<String, String>> rightPropertiesCopy = new ArrayList<>();
+		String fix = "";
+		switch(fixCase)
+		{
+		case "angle":
+			fix = String.valueOf(FixAngle(keys));
+			rightPropertiesCopy =  InsertInRightProperties(rightProperties, "angle", fix);
+			break;
+		case "shape":
+			
+			break;
+			default:
+				break;
+		}
+		return rightPropertiesCopy;
+	}
+	
+	private String FixCommon(ArrayList<IVertex> keys)
+	{
+		
+	}
+	
+	private Integer FixAngle(ArrayList<IVertex> keys)
+	{
+		int aAngle = 0;
+		int bAngle = 0;
+		int cAngle = 0;
+		
+		for(IVertex k : keys)
+		{
+			String value = GetValue("angle", k.GetAttributes());
+			if(value != null)
+			{
+				if(k.GetLabel().equals("A"))
+				{
+					aAngle = Integer.parseInt(value);
+				}
+				else if(k.GetLabel().equals("B"))
+				{
+					bAngle = Integer.parseInt(value);
+				}
+				else
+				{
+					cAngle = Integer.parseInt(value);
+				}
+			}
+			
+		}
+		// we assume there is more similarities between a and b, c and ?
+		int diff = 0;
+		if(aAngle > bAngle)
+		{
+			diff = aAngle - bAngle;
+		}
+		else if(bAngle > aAngle)
+		{
+			diff = bAngle - aAngle;
+		}
+		
+		int ansProp = cAngle - diff;
+		if(ansProp >= 0) return ansProp;
+		System.out.println(aAngle +" "+bAngle+" "+cAngle);
+		return null;		
+	}
+	
+	private String GetValue(String val, ArrayList<HashMap<String, String>> keyList)
+	{
+		for(HashMap<String, String> key : keyList)
+		{
+			for(String s : key.keySet())
+			{
+				if(s.equals(val))
+				{
+					return key.get(s);
+				}
+			}
+		}
+		return null;
+	}
+	
+	private ArrayList<HashMap<String, String>> FixWrongProperties(ArrayList<HashMap<String, String>> keyAttr, HashSet<HashMap<String, String>> differencesInKeys,
+			ArrayList<HashMap<String, String>> rightProperties)
+	{
+		ArrayList<HashMap<String, String>> rightPropertiesCopy = new ArrayList<>();
+		for(HashMap<String, String> kAttr : keyAttr)
+		{
+			for(HashMap<String, String> dInKey : differencesInKeys)
+			{
+				for(String dKey : dInKey.keySet())
+				{
+					if(kAttr.containsKey(dKey))
+					{
+						// get it's value
+						String valueNeeded = kAttr.get(dKey);
+						rightPropertiesCopy = InsertInRightProperties(rightProperties, dKey, valueNeeded);
+						System.out.println(rightPropertiesCopy);
+					}
+				}
+			}
+		}
+		return rightPropertiesCopy;
+	}
+	
+	private ArrayList<HashMap<String, String>> InsertInRightProperties(ArrayList<HashMap<String, String>> rightProperties, String key, String valueNeeded)
+	{
+		//System.out.println("bruh right "+rightProperties);
+		ArrayList<HashMap<String, String>> inserted = new ArrayList<>();
+		for(HashMap<String , String> prop : rightProperties)
+		{
+			for(String k : prop.keySet())
+			{
+				if(k.equals(key))
+				{
+					System.out.println("this is key "+k+" value "+valueNeeded);
+					prop.put(key, valueNeeded);
+				}
+			}
+		}
+		inserted = rightProperties; 
+		return inserted;
+	}
+	
+	private String GetHighestInKey(HashMap<String, Integer> diffInKeys)
+	{
+		// two values same ? return odd person if they are max
+		
+		int max = 0;
+		// bad way to do things here.. but quick hack!!
+		int aValue = 0;
+		int bValue = 0;
+		int cValue = 0;
+		for(String k : diffInKeys.keySet())
+		{
+			if(k.equals("A")) aValue = diffInKeys.get(k);
+			if(k.equals("B")) bValue = diffInKeys.get(k);
+			if(k.equals("C")) cValue = diffInKeys.get(k);
+			if(diffInKeys.get(k) > max)
+			{
+				max = diffInKeys.get(k);
+			}
+			
+			
+		}
+		
+		if(aValue == bValue && cValue == max)
+		{
+			return "C";
+		}else if(bValue == cValue && aValue == max)
+		{
+			return "A";
+		}else if(aValue == cValue && bValue == max)
+		{
+			return "B";
+		}
+		
+		return null;
+	}
+	
+	// return all properties that are different
+	private HashMap<String, String> Diff(HashMap<String, String> keyAttr, HashMap<String, String> kKeyAttr, HashMap<String, String> ansAttr)
+	{
+		HashMap<String, String> diff = new HashMap<>();
+		for(String aK : keyAttr.keySet())
+		{
+			if(ansAttr.containsKey(aK))
+			{
+				for(String bK : kKeyAttr.keySet())
+				{
+					if(aK.equals(bK))
+					{
+						// check across all keys and see if there is any difference					
+						if(!keyAttr.get(aK).equals(kKeyAttr.get(bK)))
+						{
+							diff.put(bK, "diff");
+						}
+					}
+				}
+			}
+		}
+		return diff;
 	}
 	
 	private boolean IsSameAttributes(IVertex key, IVertex k)

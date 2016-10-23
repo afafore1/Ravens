@@ -62,13 +62,13 @@ public class Agent {
 		_figures = problem.getFigures();
 		_isVerbal = problem.hasVerbal();
 
-		if (_name.contains("Basic Problem B")) // only solving for Basic problem
+		if (_name.contains("Basic Problem C")) // only solving for Basic problem
 												// B
 		{
 			GetFigures();
 			if (_isVerbal) {
 				Algorithm.Brain brain = new Algorithm.Brain(_figures);
-				System.out.println("---------------------------\n Calling AI");
+				System.out.println("---------------------------\n Calling AI for "+problem.getName());
 				//System.out.println("Answer is "+ai.FindAnswer()); // return 
 				return brain.Think();
 //				System.out.println("---------------------------\n AI call done");
