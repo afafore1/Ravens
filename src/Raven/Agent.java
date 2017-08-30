@@ -24,6 +24,7 @@ import java.util.*;
  */
 public class Agent {
     private static int count = 0;
+    private static int answer = -1;
 	private String name;
 	private Map<String, RavensFigure> figureHashMap;
 	private HashMap<String, Graph> answersMap = new LinkedHashMap<>();
@@ -70,7 +71,8 @@ public class Agent {
             System.out.println("Solving problem "+ ++count);
             makeRepresentation();
 			if (isVerbal) {
-
+                System.out.println(answer);
+                return answer;
 			}
 		}
 
@@ -79,48 +81,94 @@ public class Agent {
 
 	private void makeRepresentation() {
 	    createMap();
-	    createRelationship();
-//	    for (String key : givenMap.keySet()) {
-//	        Graph graph = givenMap.get(key);
-//            System.out.println(key + " -> " + graph.getVertex(key).getProperties());
-//        }
-//
-//        for (String key : answersMap.keySet()) {
-//            Graph graph = answersMap.get(key);
-//            System.out.println(key + " -> " + graph.getVertex(key).getProperties());
-//        }
+        Map<String, Map<String, String>> relationship = createRelationship();
+        Graph C = givenMap.get("C");
+        Graph D = generateGraph(relationship, C);
+        System.out.println(relationship);
+        Map<String, Map<String, String>> Srelationship = getRelationshipBetweenGraphs(C, D);
+        getAnswer(D, relationship);
     }
 
-    private void createRelationship() {
+    private Map<String, Map<String, String>> createRelationship() {
 	    // create relationship between A and B
         Graph A = givenMap.get("A");
         Graph B = givenMap.get("B");
         createRelationshipInGraph(A);
         createRelationshipInGraph(B);
-        Map<String, String> relationship = getRelationshipBetweenGraphs(A, B);
-        System.out.println(relationship);
+        Map<String, Map<String, String>> relationship = getRelationshipBetweenGraphs(A, B);
+        return relationship;
     }
 
-    private Graph generateGraph(Graph A, Graph B, Graph C) {
-	    Graph D = null; // we want to generate this based on A and B
+    private void getAnswer(Graph graph, Map<String, Map<String, String>> knownRelationship) {
+	    answer = -1;
+	    for (String key : answersMap.keySet()) {
+            Map<String, Map<String, String>> relationship = getRelationshipBetweenGraphs(graph, answersMap.get(key));
+            for (String k : relationship.keySet()) {
+                if (knownRelationship.get(k) != null) {
+                    Map<String, String> knownMap = knownRelationship.get(k);
+                    Map<String, String> ansMap = relationship.get(k);
+                    if (knownMap.equals(ansMap)) {
+                        answer = Integer.parseInt(key);
+                    } else {
 
+                    }
+                }
+            }
+        }
+    }
+
+    private Graph generateGraph(Map<String, Map<String, String>> relationship, Graph C) {
+	    Graph D = new Graph(); // we want to generate this based on A and B
+        if (isRelationshipUnchanged(relationship)) {
+            Map<String, Vertex> vertexMap = C.getVertices();
+            D.getVertices().putAll(vertexMap);
+            if (!C.getEdges().isEmpty()) {
+                for (Edge edge : C.getEdges()) {
+                    edge.setWeight(5);
+                    D.AddEdge(edge.getSource(), edge.getDestination(), edge.getRelationship());
+                }
+            }
+        } else {
+            //assign points based on these changes
+            D = new Graph();
+            Map<String, Vertex> vertexMap = C.getVertices();
+
+        }
         return D;
     }
 
-    private Map<String, String> getRelationshipBetweenGraphs(Graph A, Graph B) {
+    private boolean isRelationshipUnchanged(Map<String, Map<String, String>> relationship) {
+	    for (String key : relationship.keySet()) {
+	        if (!isUnchanged(relationship.get(key))) return false;
+        }
+        return true;
+    }
+    private boolean isUnchanged(Map<String, String> relationship) {
+	    for (String key : relationship.keySet()) {
+	        if (!relationship.get(key).equals("unchanged"))
+	            return false;
+        }
+        return true;
+    }
+
+    private Map<String, Map<String, String>> getRelationshipBetweenGraphs(Graph A, Graph B) {
 	    Map<String, Vertex> aVertexMap = A.getVertices();
 	    Map<String, Vertex> bVertexMap = B.getVertices();
-	    Map<String, String> relationship = new LinkedHashMap<>();
+	    Map<String, Map<String, String>> relationship = new LinkedHashMap<>();
 	    int maxSize = aVertexMap.size() > bVertexMap.size() ? aVertexMap.size() : bVertexMap.size();
 	    for (int i = 0; i < maxSize; i++) {
             Vertex x = getVertex(i, aVertexMap);
             Vertex y = getVertex(i, bVertexMap);
 	        if (x == null) {
-	            relationship.put(y.getLabel(), "deleted");
+	            Map<String, String> rel = new LinkedHashMap<>();
+                rel.put(y.getLabel(), "deleted");
+                relationship.put(i + " " + i, rel);
             } else if (y == null) {
-	            relationship.put(x.getLabel(), "deleted");
+                Map<String, String> rel = new LinkedHashMap<>();
+                rel.put(x.getLabel(), "deleted");
+	            relationship.put(i + " " + i, rel);
             } else {
-                getDifference(relationship, x, y);
+                getDifference(i, relationship, x, y);
             }
         }
         return relationship;
@@ -131,22 +179,60 @@ public class Agent {
 	    return (new ArrayList<>(vertexMap.values()).get(index));
     }
 
-    private void getDifference(Map<String, String> relationship, Vertex x, Vertex y) {
+    private void getDifference(int index, Map<String, Map<String, String>> relationship, Vertex x, Vertex y) {
 	    Map<String, String> xProperties = x.getProperties();
 	    Map<String, String> yProperties = y.getProperties();
+        HashMap<String, String> rel = new LinkedHashMap<>();
 	    for (String key : xProperties.keySet()) {
 	        if (yProperties.get(key) != null) {
                 String xValue = xProperties.get(key);
                 String yValue = yProperties.get(key);
-                if (xValue.equals(yValue)) {
-	                relationship.put(key, "unchanged");
+                if (xValue.equals(yValue) || key.equalsIgnoreCase("inside")) {
+                    rel.put(key, "unchanged");
                 } else {
-                    System.out.println(xValue + " - " + yValue);
+                    String difference = understandDifference(xValue, yValue);
+                    rel.put(key, difference);
                 }
             }
         }
+        relationship.put(index + " " + index, rel);
     }
 
+    private String understandDifference(String xValue, String yValue) {
+	    String difference = null;
+	    Integer x;
+	    Integer y;
+	    try {
+	        x = Integer.parseInt(xValue);
+	        y = Integer.parseInt(yValue);
+        } catch (Exception e){
+	        String [] xArr = xValue.split(",");
+	        String [] yArr = yValue.split(",");
+	        if (xArr.length > 1 && xArr.length == yArr.length) {
+	            for (int i = 0; i < xArr.length; i++) {
+	                String a = xArr[i];
+	                String b = yArr[i];
+	                if (getTransition(a, b) == null) continue;
+	                difference = getTransition(a, b);
+                }
+            } else {
+	            difference = "changed";
+            }
+	        return difference;
+        }
+        //if they are numbers, find the difference
+        Integer diff = Math.abs(x - y);
+        difference = String.valueOf(diff);
+        return difference;
+    }
+
+    private String getTransition(String a, String b) {
+	    if ((a.equalsIgnoreCase("bottom") && b.equalsIgnoreCase("top")) ||
+                (b.equalsIgnoreCase("bottom") && a.equalsIgnoreCase("top"))) return "rotated";
+	    if ((a.equalsIgnoreCase("right") && b.equalsIgnoreCase("left")) ||
+                (b.equalsIgnoreCase("right") && a.equalsIgnoreCase("left"))) return "reflected";
+	    return null;
+    }
     private void createRelationshipInGraph(Graph graph) {
 	    Map<String, Vertex> vertexMap = graph.getVertices();
 	    Set<String> keys = vertexMap.keySet();

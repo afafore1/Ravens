@@ -42,6 +42,10 @@ public class Graph {
 	    return this._vertices;
     }
 
+    public ArrayList<Edge> getEdges() {
+	    return this._edges;
+    }
+
 	public void AddEdge(Vertex source, Vertex destination, String relationship)
 	{
 		Edge edge = new Edge(source, destination, relationship);
