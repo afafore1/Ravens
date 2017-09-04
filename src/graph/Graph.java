@@ -26,6 +26,10 @@ public class Graph {
 		_vertices.put(label, vertex);
 	}
 
+	public void removeVertex(String label) {
+		this._vertices.remove(label);
+	}
+
 	public void addVertex(String label, Vertex vertex) {
 	    _vertices.put(label, vertex);
     }

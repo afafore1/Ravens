@@ -25,35 +25,10 @@
     </plugins>
   </build>
   <dependencies>
-		<dependency>
-			<groupId>asm</groupId>
-			<artifactId>asm</artifactId>
-			<version>3.3.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-bundle</artifactId>
-			<version>1.19</version>
-		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20160810</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-server</artifactId>
-			<version>1.19</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.jersey</groupId>
-			<artifactId>jersey-core</artifactId>
-			<version>1.19</version>
-		</dependency>
-		<dependency>
-    		<groupId>com.sun.jersey</groupId>
-    		<artifactId>jersey-json</artifactId>
-    		<version>1.19</version>
-		</dependency>
+	  <dependency>
+		  <groupId>org.neo4j.driver</groupId>
+		  <artifactId>neo4j-java-driver</artifactId>
+		  <version>1.2.1</version>
+	  </dependency>
 	</dependencies>
 </project>
