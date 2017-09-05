@@ -85,11 +85,11 @@ public class Agent {
 	private void makeRepresentation() {
 	    createMap();
         Map<String, Map<String, String>> relationship = createRelationship();
-        System.out.println(relationship);
+        //System.out.println(relationship);
         Graph C = givenMap.get("C");
         Graph D = generateGraph(relationship, C);
         Map<String, Map<String, String>> Srelationship = getRelationshipBetweenGraphs(C, D);
-        System.out.println(Srelationship);
+        //System.out.println(Srelationship);
         getAnswer(D);
         //createGraph();
     }
