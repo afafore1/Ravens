@@ -435,6 +435,18 @@ public class Agent {
             D.addVertex(String.valueOf(index), generatedVertex);
             index++;
         }
+        if (givenMap.get("A").getVertices().size() < C.getVertices().size() &&
+                B.getVertices().size() < C.getVertices().size()) {
+            int size = B.getVertices().size();
+            int counter = 0;
+            for (String key : C.getVertices().keySet()) {
+                counter++;
+                if (counter <= size) continue;
+                Vertex vertex = C.getVertex(key);
+                D.addVertex(key, vertex);
+
+            }
+        }
         return D;
     }
 
@@ -458,6 +470,7 @@ public class Agent {
                 getDifference(i, relationship, x, y);
             }
         }
+        System.out.println(relationship);
         return relationship;
     }
 
